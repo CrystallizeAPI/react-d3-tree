@@ -1,7 +1,7 @@
 import React from "react";
 import { polyfill } from "react-lifecycles-compat";
 import T from "prop-types";
-import { layout, select, zoom as zoomBehavior } from "d3";
+import { tree as treeLayout, select, zoom as zoomBehavior } from "d3";
 import clone from "clone";
 import deepEqual from "deep-equal";
 import uuid from "uuid";
@@ -438,8 +438,7 @@ class Tree extends React.Component {
       orientation,
     } = this.props;
 
-    const tree = layout
-      .tree()
+    const tree = treeLayout()
       .nodeSize(
         orientation === "horizontal"
           ? [nodeSize.y, nodeSize.x]
