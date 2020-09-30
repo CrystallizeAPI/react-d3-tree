@@ -1,7 +1,7 @@
 import React from "react";
 import { polyfill } from "react-lifecycles-compat";
 import T from "prop-types";
-import { layout, select, zoom as zoomBehavior, event } from "d3";
+import { layout, select, zoom as zoomBehavior } from "d3";
 import clone from "clone";
 import deepEqual from "deep-equal";
 import uuid from "uuid";
@@ -109,7 +109,7 @@ class Tree extends React.Component {
       svg.call(
         zoomBehavior()
           .scaleExtent([scaleExtent.min, scaleExtent.max])
-          .on("zoom", () => {
+          .on("zoom", (event) => {
             g.attr(
               "transform",
               `translate(${event.translate}) scale(${event.scale})`
