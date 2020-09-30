@@ -1,15 +1,15 @@
-import React from 'react';
-import { polyfill } from 'react-lifecycles-compat';
-import T from 'prop-types';
-import { layout, select, behavior, event } from 'd3';
-import clone from 'clone';
-import deepEqual from 'deep-equal';
-import uuid from 'uuid';
+import React from "react";
+import { polyfill } from "react-lifecycles-compat";
+import T from "prop-types";
+import { layout, select, zoom as zoomBehavior, event } from "d3";
+import clone from "clone";
+import deepEqual from "deep-equal";
+import uuid from "uuid";
 
-import NodeWrapper from './NodeWrapper';
-import Node from '../Node';
-import Link from '../Link';
-import './style.css';
+import NodeWrapper from "./NodeWrapper";
+import Node from "../Node";
+import Link from "../Link";
+import "./style.css";
 
 class Tree extends React.Component {
   state = {
@@ -65,9 +65,11 @@ class Tree extends React.Component {
       this.bindZoomListener(this.props);
     }
 
-    if (typeof this.props.onUpdate === 'function') {
+    if (typeof this.props.onUpdate === "function") {
       this.props.onUpdate({
-        node: this.internalState.targetNode ? clone(this.internalState.targetNode) : null,
+        node: this.internalState.targetNode
+          ? clone(this.internalState.targetNode)
+          : null,
         zoom: this.state.d3.scale,
         translate: this.state.d3.translate,
       });
@@ -85,7 +87,7 @@ class Tree extends React.Component {
    * @return {void}
    */
   setInitialTreeDepth(nodeSet, initialDepth) {
-    nodeSet.forEach(n => {
+    nodeSet.forEach((n) => {
       n._collapsed = n.depth >= initialDepth;
     });
   }
@@ -105,12 +107,14 @@ class Tree extends React.Component {
 
     if (zoomable) {
       svg.call(
-        behavior
-          .zoom()
+        zoomBehavior()
           .scaleExtent([scaleExtent.min, scaleExtent.max])
-          .on('zoom', () => {
-            g.attr('transform', `translate(${event.translate}) scale(${event.scale})`);
-            if (typeof onUpdate === 'function') {
+          .on("zoom", () => {
+            g.attr(
+              "transform",
+              `translate(${event.translate}) scale(${event.scale})`
+            );
+            if (typeof onUpdate === "function") {
               // This callback is magically called not only on "zoom", but on "drag", as well,
               // even though event.type == "zoom".
               // Taking advantage of this and not writing a "drag" handler.
@@ -120,12 +124,15 @@ class Tree extends React.Component {
                 translate: { x: event.translate[0], y: event.translate[1] },
               });
               this.state.d3.scale = event.scale;
-              this.state.d3.translate = { x: event.translate[0], y: event.translate[1] };
+              this.state.d3.translate = {
+                x: event.translate[0],
+                y: event.translate[1],
+              };
             }
           })
           // Offset so that first pan and zoom does not jump back to [0,0] coords
           .scale(zoom)
-          .translate([translate.x, translate.y]),
+          .translate([translate.x, translate.y])
       );
     }
   }
@@ -143,7 +150,7 @@ class Tree extends React.Component {
   static assignInternalProperties(data) {
     // Wrap the root node into an array for recursive transformations if it wasn't in one already.
     const d = Array.isArray(data) ? data : [data];
-    return d.map(node => {
+    return d.map((node) => {
       node.id = uuid.v4();
       // If the node's `_collapsed` state wasn't defined by the data set -> default to `false`.
       if (node._collapsed === undefined) {
@@ -173,9 +180,9 @@ class Tree extends React.Component {
       return hits;
     }
 
-    hits = hits.concat(nodeSet.filter(node => node.id === nodeId));
+    hits = hits.concat(nodeSet.filter((node) => node.id === nodeId));
 
-    nodeSet.forEach(node => {
+    nodeSet.forEach((node) => {
       if (node._children && node._children.length > 0) {
         hits = this.findNodesById(nodeId, node._children, hits);
       }
@@ -193,9 +200,11 @@ class Tree extends React.Component {
    * @return
    */
   findNodesAtDepth(depth, nodeSet, accumulator) {
-    accumulator = accumulator.concat(nodeSet.filter(node => node.depth === depth));
+    accumulator = accumulator.concat(
+      nodeSet.filter((node) => node.depth === depth)
+    );
 
-    nodeSet.forEach(node => {
+    nodeSet.forEach((node) => {
       if (node._children && node._children.length > 0) {
         accumulator = this.findNodesAtDepth(depth, node._children, accumulator);
       }
@@ -215,7 +224,7 @@ class Tree extends React.Component {
   static collapseNode(node) {
     node._collapsed = true;
     if (node._children && node._children.length > 0) {
-      node._children.forEach(child => {
+      node._children.forEach((child) => {
         Tree.collapseNode(child);
       });
     }
@@ -242,10 +251,12 @@ class Tree extends React.Component {
    * @return {void}
    */
   collapseNeighborNodes(targetNode, nodeSet) {
-    const neighbors = this.findNodesAtDepth(targetNode.depth, nodeSet, []).filter(
-      node => node.id !== targetNode.id,
-    );
-    neighbors.forEach(neighbor => Tree.collapseNode(neighbor));
+    const neighbors = this.findNodesAtDepth(
+      targetNode.depth,
+      nodeSet,
+      []
+    ).filter((node) => node.id !== targetNode.id);
+    neighbors.forEach((neighbor) => Tree.collapseNode(neighbor));
   }
 
   /**
@@ -271,16 +282,19 @@ class Tree extends React.Component {
     if (this.props.collapsible && !this.state.isTransitioning) {
       if (targetNode._collapsed) {
         Tree.expandNode(targetNode);
-        this.props.shouldCollapseNeighborNodes && this.collapseNeighborNodes(targetNode, data);
+        this.props.shouldCollapseNeighborNodes &&
+          this.collapseNeighborNodes(targetNode, data);
       } else {
         Tree.collapseNode(targetNode);
       }
       // Lock node toggling while transition takes place
-      this.setState({ data, isTransitioning: true }, () => this.handleOnClickCb(targetNode, evt));
+      this.setState({ data, isTransitioning: true }, () =>
+        this.handleOnClickCb(targetNode, evt)
+      );
       // Await transitionDuration + 10 ms before unlocking node toggling again
       setTimeout(
         () => this.setState({ isTransitioning: false }),
-        this.props.transitionDuration + 10,
+        this.props.transitionDuration + 10
       );
       this.internalState.targetNode = targetNode;
     } else {
@@ -299,7 +313,7 @@ class Tree extends React.Component {
    */
   handleOnClickCb = (targetNode, evt) => {
     const { onClick } = this.props;
-    if (onClick && typeof onClick === 'function') {
+    if (onClick && typeof onClick === "function") {
       onClick(clone(targetNode), evt);
     }
   };
@@ -317,7 +331,7 @@ class Tree extends React.Component {
    */
   handleOnLinkClickCb = (linkSource, linkTarget, evt) => {
     const { onLinkClick } = this.props;
-    if (onLinkClick && typeof onLinkClick === 'function') {
+    if (onLinkClick && typeof onLinkClick === "function") {
       // Persist the SyntheticEvent for downstream handling by users.
       evt.persist();
       onLinkClick(clone(linkSource), clone(linkTarget), evt);
@@ -335,7 +349,7 @@ class Tree extends React.Component {
    */
   handleOnMouseOverCb = (nodeId, evt) => {
     const { onMouseOver } = this.props;
-    if (onMouseOver && typeof onMouseOver === 'function') {
+    if (onMouseOver && typeof onMouseOver === "function") {
       const data = clone(this.state.data);
       const matches = this.findNodesById(nodeId, data, []);
       const targetNode = matches[0];
@@ -358,7 +372,7 @@ class Tree extends React.Component {
    */
   handleOnLinkMouseOverCb = (linkSource, linkTarget, evt) => {
     const { onLinkMouseOver } = this.props;
-    if (onLinkMouseOver && typeof onLinkMouseOver === 'function') {
+    if (onLinkMouseOver && typeof onLinkMouseOver === "function") {
       // Persist the SyntheticEvent for downstream handling by users.
       evt.persist();
       onLinkMouseOver(clone(linkSource), clone(linkTarget), evt);
@@ -376,7 +390,7 @@ class Tree extends React.Component {
    */
   handleOnMouseOutCb = (nodeId, evt) => {
     const { onMouseOut } = this.props;
-    if (onMouseOut && typeof onMouseOut === 'function') {
+    if (onMouseOut && typeof onMouseOut === "function") {
       const data = clone(this.state.data);
       const matches = this.findNodesById(nodeId, data, []);
       const targetNode = matches[0];
@@ -399,7 +413,7 @@ class Tree extends React.Component {
    */
   handleOnLinkMouseOutCb = (linkSource, linkTarget, evt) => {
     const { onLinkMouseOut } = this.props;
-    if (onLinkMouseOut && typeof onLinkMouseOut === 'function') {
+    if (onLinkMouseOut && typeof onLinkMouseOut === "function") {
       // Persist the SyntheticEvent for downstream handling by users.
       evt.persist();
       onLinkMouseOut(clone(linkSource), clone(linkTarget), evt);
@@ -426,11 +440,17 @@ class Tree extends React.Component {
 
     const tree = layout
       .tree()
-      .nodeSize(orientation === 'horizontal' ? [nodeSize.y, nodeSize.x] : [nodeSize.x, nodeSize.y])
-      .separation(
-        (a, b) => (a.parent.id === b.parent.id ? separation.siblings : separation.nonSiblings),
+      .nodeSize(
+        orientation === "horizontal"
+          ? [nodeSize.y, nodeSize.x]
+          : [nodeSize.x, nodeSize.y]
       )
-      .children(d => (d._collapsed ? null : d._children));
+      .separation((a, b) =>
+        a.parent.id === b.parent.id
+          ? separation.siblings
+          : separation.nonSiblings
+      )
+      .children((d) => (d._collapsed ? null : d._children));
 
     const rootNode = this.state.data[0];
     let nodes = tree.nodes(rootNode);
@@ -446,7 +466,7 @@ class Tree extends React.Component {
     }
 
     if (depthFactor) {
-      nodes.forEach(node => {
+      nodes.forEach((node) => {
         node.y = node.depth * depthFactor;
       });
     }
@@ -501,9 +521,18 @@ class Tree extends React.Component {
       styles,
     } = this.props;
     const { translate, scale } = this.state.d3;
-    const subscriptions = { ...nodeSize, ...separation, depthFactor, initialDepth };
+    const subscriptions = {
+      ...nodeSize,
+      ...separation,
+      depthFactor,
+      initialDepth,
+    };
     return (
-      <div className={`rd3t-tree-container ${zoomable ? 'rd3t-grabbable' : undefined}`}>
+      <div
+        className={`rd3t-tree-container ${
+          zoomable ? "rd3t-grabbable" : undefined
+        }`}
+      >
         <svg className={rd3tSvgClassName} width="100%" height="100%">
           <NodeWrapper
             transitionDuration={transitionDuration}
@@ -511,7 +540,7 @@ class Tree extends React.Component {
             className={rd3tGClassName}
             transform={`translate(${translate.x},${translate.y}) scale(${scale})`}
           >
-            {links.map(linkData => (
+            {links.map((linkData) => (
               <Link
                 key={uuid.v4()}
                 orientation={orientation}
@@ -525,7 +554,7 @@ class Tree extends React.Component {
               />
             ))}
 
-            {nodes.map(nodeData => (
+            {nodes.map((nodeData) => (
               <Node
                 key={nodeData.id}
                 nodeSvgShape={{ ...nodeSvgShape, ...nodeData.nodeSvgShape }}
@@ -555,7 +584,7 @@ class Tree extends React.Component {
 
 Tree.defaultProps = {
   nodeSvgShape: {
-    shape: 'circle',
+    shape: "circle",
     shapeProps: {
       r: 10,
     },
@@ -568,9 +597,9 @@ Tree.defaultProps = {
   onLinkMouseOver: undefined,
   onLinkMouseOut: undefined,
   onUpdate: undefined,
-  orientation: 'horizontal',
+  orientation: "horizontal",
   translate: { x: 0, y: 0 },
-  pathFunc: 'diagonal',
+  pathFunc: "diagonal",
   transitionDuration: 500,
   depthFactor: undefined,
   collapsible: true,
@@ -582,7 +611,7 @@ Tree.defaultProps = {
   nodeSize: { x: 140, y: 140 },
   separation: { siblings: 1, nonSiblings: 2 },
   textLayout: {
-    textAnchor: 'start',
+    textAnchor: "start",
     x: 10,
     y: -10,
     transform: undefined,
@@ -607,12 +636,15 @@ Tree.propTypes = {
   onLinkMouseOver: T.func,
   onLinkMouseOut: T.func,
   onUpdate: T.func,
-  orientation: T.oneOf(['horizontal', 'vertical']),
+  orientation: T.oneOf(["horizontal", "vertical"]),
   translate: T.shape({
     x: T.number,
     y: T.number,
   }),
-  pathFunc: T.oneOfType([T.oneOf(['diagonal', 'elbow', 'straight', 'step']), T.func]),
+  pathFunc: T.oneOfType([
+    T.oneOf(["diagonal", "elbow", "straight", "step"]),
+    T.func,
+  ]),
   transitionDuration: T.number,
   depthFactor: T.number,
   collapsible: T.bool,
